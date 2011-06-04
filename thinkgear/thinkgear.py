@@ -1,9 +1,9 @@
 # Copyright (c) 2009, Kai Groner
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright notice,
@@ -12,7 +12,7 @@
 #     * Neither the name of the Kai Groner nor the names of its contributors
 #       may be used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -72,7 +72,7 @@ class ThinkGearProtocol(object):
 
     @staticmethod
     def _chksum(packet):
-        return ~sum( ord(c) for c in packet ) & 0xff
+        return ~sum(ord(c) for c in packet) & 0xff
 
     def _read(self, n):
         buf = self.io.read(n)
@@ -88,7 +88,9 @@ class ThinkGearProtocol(object):
                     _log.debug('incomplete read, short %s bytes', n - len(buf))
 
         for o in xrange(0, len(buf), 16):
-            _bytelog.debug('%04X  '+' '.join(('%02X',)*len(buf[o:o+16])), o, *( ord(c) for c in buf[o:o+16] ))
+            _bytelog.debug(
+                '%04X  ' + ' '.join(('%02X',) * len(buf[o:o + 16])),
+                o, *(ord(c) for c in buf[o:o + 16]))
 
         return buf
 
@@ -136,7 +138,8 @@ class ThinkGearProtocol(object):
                 extended_code_level += 1
                 packet = packet[1:]
             if len(packet) < 2:
-                _log.debug('ran out of packet: %r', '\x55'*extended_code_level+packet)
+                _log.debug('ran out of packet: %r',
+                           '\x55' * extended_code_level + packet)
                 break
             code = ord(packet[0])
             if code < 0x80:
@@ -144,17 +147,21 @@ class ThinkGearProtocol(object):
                 packet = packet[2:]
             else:
                 vlen = ord(packet[1])
-                if len(packet) < 2+vlen:
-                    _log.debug('ran out of packet: %r', '\x55'*extended_code_level+chr(code)+chr(vlen)+packet)
+                if len(packet) < 2 + vlen:
+                    _log.debug(
+                        'ran out of packet: %r',
+                        '\x55' * extended_code_level + chr(code)
+                        + chr(vlen) + packet)
                     break
-                value = packet[2:2+vlen]
-                packet = packet[2+vlen:]
+                value = packet[2:2 + vlen]
+                packet = packet[2 + vlen:]
 
             if not extended_code_level and code in data_types:
                 data = data_types[code](extended_code_level, code, value)
 
             elif (extended_code_level,code) in data_types:
-                data = data_types[(extended_code_level,code)](extended_code_level, code, value)
+                data = data_types[(extended_code_level,code)](
+                    extended_code_level, code, value)
 
             else:
                 data = ThinkGearUnknownData(extended_code_level, code, value)
@@ -200,7 +207,8 @@ class ThinkGearData(object):
 
 class ThinkGearUnknownData(ThinkGearData):
     '''???'''
-    _strfmt = 'Unknown: code=%(code)02X extended_code_level=%(extended_code_level)s %(value)r'
+    _strfmt = ('Unknown: code=%(code)02X '
+               'extended_code_level=%(extended_code_level)s %(value)r')
 
 
 class ThinkGearPoorSignalData(ThinkGearData):
@@ -233,17 +241,23 @@ class ThinkGearRawWaveData(ThinkGearData):
     _log = False
 
 
-EEGPowerData = namedtuple('EEGPowerData', 'delta theta lowalpha highalpha lowbeta highbeta lowgamma midgamma')
+EEGPowerData = namedtuple(
+    'EEGPowerData',
+    'delta theta lowalpha highalpha lowbeta highbeta lowgamma midgamma')
+
 class ThinkGearEEGPowerData(ThinkGearData):
     '''Eight EEG band power values (0 to 16777215).
-    
+
     delta, theta, low-alpha high-alpha, low-beta, high-beta, low-gamma, and
     mid-gamma EEG band power values.
     '''
 
     code = 0x83
     _strfmt = 'ASIC EEG Power: %(value)r'
-    _decode = staticmethod(lambda v: EEGPowerData(*struct.unpack('>8L', ''.join( '\x00'+v[o:o+3] for o in xrange(0, 24, 3)))))
+    _decode = staticmethod(
+        lambda v: EEGPowerData(
+            *struct.unpack(
+                '>8L', ''.join( '\x00'+v[o:o+3] for o in xrange(0, 24, 3)))))
 
 
 def main():
