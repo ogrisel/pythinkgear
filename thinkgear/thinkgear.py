@@ -247,11 +247,16 @@ class ThinkGearEEGPowerData(ThinkGearData):
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
+    device = '/dev/rfcomm9'
+    if len(sys.argv) > 1:
+        device = sys.argv[1]
+
+    logging.info("Opening connection to %s", device)
     global packet_log
     packet_log = []
-    logging.basicConfig(level=logging.DEBUG)
 
-    for pkt in ThinkGearProtocol('/dev/rfcomm9').get_packets():
+    for pkt in ThinkGearProtocol(device).get_packets():
         packet_log.append(pkt)
 
 if __name__ == '__main__':
