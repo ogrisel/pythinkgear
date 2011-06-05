@@ -15,7 +15,7 @@ device suitable for direct access by `pythinkgear` under Ubuntu 11.04:
 
         rfcomm0 {
             # Automatically bind the device at startup
-            bind no;
+            bind yes;
 
             # Bluetooth address of the device found on a tag of the inner
             # headband of the headset
