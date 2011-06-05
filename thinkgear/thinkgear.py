@@ -39,7 +39,7 @@ import logging.handlers
 
 _log = logging.getLogger(__name__)
 
-_bytelog = logging.getLogger(__name__+'.bytes')
+_bytelog = logging.getLogger(__name__ + '.bytes')
 _bytelog.propagate = False
 
 # Uncomment this to save log messages about the data stream in memory
@@ -83,7 +83,7 @@ class ThinkGearProtocol(object):
                 self.preread.reset()
                 self.preread.truncate()
                 self.io = self.serial
-                buf += self.io.read(n-len(buf))
+                buf += self.io.read(n - len(buf))
                 if len(buf) < n:
                     _log.debug('incomplete read, short %s bytes', n - len(buf))
 
@@ -105,14 +105,14 @@ class ThinkGearProtocol(object):
     def get_packets(self):
         last_two = ()
         while True:
-            last_two = last_two[-1:]+(self._read(1),)
+            last_two = last_two[-1:] + (self._read(1),)
             #_log.debug('last_two: %r', last_two)
-            if last_two == ('\xAA','\xAA'):
+            if last_two == ('\xAA', '\xAA'):
                 plen = self._read(1)
                 if plen >= '\xAA':
                     # Bogosity
                     _log.debug('discarding %r while syncing', last_two[0])
-                    last_two = last_two[-1:]+(plen,)
+                    last_two = last_two[-1:] + (plen,)
 
                 else:
                     last_two = ()
@@ -124,7 +124,7 @@ class ThinkGearProtocol(object):
 
                     else:
                         _log.debug('bad checksum')
-                        self._deread(packet+checksum)
+                        self._deread(packet + checksum)
 
             elif len(last_two) == 2:
                 _log.debug('discarding %r while syncing', last_two[0])
@@ -159,8 +159,8 @@ class ThinkGearProtocol(object):
             if not extended_code_level and code in data_types:
                 data = data_types[code](extended_code_level, code, value)
 
-            elif (extended_code_level,code) in data_types:
-                data = data_types[(extended_code_level,code)](
+            elif (extended_code_level, code) in data_types:
+                data = data_types[(extended_code_level, code)](
                     extended_code_level, code, value)
 
             else:
@@ -173,6 +173,7 @@ class ThinkGearProtocol(object):
 
 data_types = {}
 
+
 class ThinkGearMetaClass(type):
     def __new__(mcls, name, bases, data):
         cls = super(ThinkGearMetaClass, mcls).__new__(mcls, name, bases, data)
@@ -181,7 +182,7 @@ class ThinkGearMetaClass(type):
             data_types[code] = cls
             extended_code_level = getattr(cls, 'extended_code_level', None)
             if extended_code_level:
-                data_types[(extended_code_level,code)] = cls
+                data_types[(extended_code_level, code)] = cls
         return cls
 
 
@@ -245,6 +246,7 @@ EEGPowerData = namedtuple(
     'EEGPowerData',
     'delta theta lowalpha highalpha lowbeta highbeta lowgamma midgamma')
 
+
 class ThinkGearEEGPowerData(ThinkGearData):
     '''Eight EEG band power values (0 to 16777215).
 
@@ -257,7 +259,8 @@ class ThinkGearEEGPowerData(ThinkGearData):
     _decode = staticmethod(
         lambda v: EEGPowerData(
             *struct.unpack(
-                '>8L', ''.join( '\x00'+v[o:o+3] for o in xrange(0, 24, 3)))))
+                '>8L', ''.join('\x00' + v[o:o + 3]
+                               for o in xrange(0, 24, 3)))))
 
 
 def main():
@@ -275,4 +278,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
