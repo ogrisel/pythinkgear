@@ -43,7 +43,4 @@ def test_data_collector():
                             dtype=collector.dtype)
     assert np.all(last_buffer[11:] == 0.0)
 
-
     shutil.rmtree(data_folder)
-
-
