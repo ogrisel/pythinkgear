@@ -3,7 +3,7 @@ import tempfile
 import shutil
 import numpy as np
 
-from ..analysis import DataCollector
+from ..collect import DataCollector
 from ..thinkgear import ThinkGearRawWaveData
 
 
