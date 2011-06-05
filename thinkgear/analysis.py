@@ -84,6 +84,7 @@ class DataCollector(object):
             else:
                 break
 
+        logging.info("Creating new buffer: %s", filepath)
         buffer = np.memmap(filepath, dtype=self.dtype, mode='w+',
                            shape=(self.chunk_size,))
         # set all the buffer values to zero to be able to detect partially
