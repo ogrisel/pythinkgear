@@ -24,6 +24,7 @@
 
 """Interface module to dump raw packet into numpy arrays for analysis"""
 
+import uuid
 import logging
 import sys
 import os
@@ -68,14 +69,15 @@ class DataCollector(object):
         """Up to the second, filename same timestamp"""
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    def make_buffer(self):
+    def make_buffer(self, session_id):
 
         # build a non existing filename based on a timestamp and a integer
         # increment
         ts = self.get_timestamp()
         incr = 0
+        pattern = self.prefix + ts + '_%s_%03d.memmap'
         while True:
-            filename = self.prefix + ts + '_%03d.memmap' % incr
+            filename = pattern % (session_id, incr)
             filepath = os.path.join(self.data_folder, filename)
             if os.path.exists(filepath):
                 incr += 1
@@ -90,7 +92,7 @@ class DataCollector(object):
         buffer[:] = 0.0
         return buffer
 
-    def check_buffer(self, cursor, buffer):
+    def check_buffer(self, cursor, buffer, session_id):
         """Check that the cursor is not overflowing the buffer
 
         Close the current buffer and create a new one with the cursor at
@@ -98,7 +100,7 @@ class DataCollector(object):
         """
         if cursor >= buffer.shape[0]:
             buffer.flush()
-            buffer = self.make_buffer()
+            buffer = self.make_buffer(session_id)
             cursor = 0
         return cursor, buffer
 
@@ -107,13 +109,14 @@ class DataCollector(object):
 
         Instance are buffered in memory mapped arrays of fixed size.
         """
+        session_id = uuid.uuid4().hex[:16]
         collected = 0
         logging.info("Opening connection to %s", self.device)
         cursor = 0
-        buffer = self.make_buffer()
+        buffer = self.make_buffer(session_id)
         try:
             for pkt in self.protocol(self.device).get_packets():
-                cursor, buffer = self.check_buffer(cursor, buffer)
+                cursor, buffer = self.check_buffer(cursor, buffer, session_id)
                 for d in pkt:
                     if isinstance(d, self.packet_type):
                         buffer[cursor] = d.value
@@ -123,7 +126,8 @@ class DataCollector(object):
                             # flush every second so that readers can collect
                             # the data in almost real time
                             buffer.flush()
-                        cursor, buffer = self.check_buffer(cursor, buffer)
+                        cursor, buffer = self.check_buffer(
+                            cursor, buffer, session_id)
                         if n_samples is not None and collected > n_samples:
                             # early stopping
                             raise StopIteration()
