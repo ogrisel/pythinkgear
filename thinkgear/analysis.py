@@ -26,33 +26,113 @@
 
 """Interface module to dump raw packet into numpy arrays for analysis"""
 
-import numpy as np
-import pylab as pl
 import logging
 import sys
+import os
+from datetime import datetime
+
+import numpy as np
+import pylab as pl
 
 from .thinkgear import ThinkGearProtocol
 from .thinkgear import ThinkGearRawWaveData
 
+
 # The Mindset samples at 512Hz
-BUFFER_SIZE = 512 * 10
+SAMPLING_FREQUENCY = 512
 
 
-def collect_buffer(device, buffer_size=BUFFER_SIZE):
-    logging.info("Opening connection to %s", device)
-    raw_signal_buffer = np.empty(buffer_size)
+# One file per 1 minute of collected data
+BUFFER_SIZE = SAMPLING_FREQUENCY * 60
 
-    i = 0
-    for pkt in ThinkGearProtocol(device).get_packets():
-        if i == raw_signal_buffer.shape[0]:
-            break
-        for d in pkt:
-            if isinstance(d, ThinkGearRawWaveData):
-                raw_signal_buffer[i] = d.value
-                i += 1
-                if i == raw_signal_buffer.shape[0]:
-                    break
-    return raw_signal_buffer
+
+class DataCollector(object):
+    """Read data from the device and serialize it on disk
+
+    This tool is meant to work in it's own python process and communicate
+    the raw data arrays to analyzing processes through memmaped arrays.
+    """
+
+    def __init__(self, device, data_folder, prefix='pythinkgear_',
+                 chunk_size=BUFFER_SIZE, dtype=np.double,
+                 protocol=ThinkGearProtocol, packet_type=ThinkGearRawWaveData):
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+        self.data_folder = data_folder
+        self.device = device
+        self.prefix = prefix
+        self.dtype = dtype
+        self.chunk_size = chunk_size
+        self.protocol = protocol
+        self.packet_type = packet_type
+
+    def get_timestamp(self):
+        """Up to the second, filename same timestamp"""
+        return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    def make_buffer(self):
+
+        # build a non existing filename based on a timestamp and a integer
+        # increment
+        ts = self.get_timestamp()
+        incr = 0
+        while True:
+            filename = self.prefix + ts + '_%03d.memmap' % incr
+            filepath = os.path.join(self.data_folder, filename)
+            if os.path.exists(filepath):
+                incr += 1
+            else:
+                break
+
+        buffer = np.memmap(filepath, dtype=self.dtype, mode='w+',
+                           shape=(self.chunk_size,))
+        # set all the buffer values to zero to be able to detect partially
+        # filled buffers
+        buffer[:] = 0.0
+        return buffer
+
+    def check_buffer(self, cursor, buffer):
+        """Check that the cursor is not overflowing the buffer
+
+        Close the current buffer and create a new one with the cursor at
+        the beginning in case of overflow.
+        """
+        if cursor >= buffer.shape[0]:
+            buffer.flush()
+            buffer = self.make_buffer()
+            cursor = 0
+        return cursor, buffer
+
+    def collect(self, n_samples=None):
+        """Collect samples from the device using the protocol instance
+
+        Instance are buffered in memory mapped arrays of fixed size.
+        """
+        collected = 0
+        logging.info("Opening connection to %s", self.device)
+        cursor = 0
+        buffer = self.make_buffer()
+        try:
+            for pkt in self.protocol(self.device).get_packets():
+                cursor, buffer = self.check_buffer(cursor, buffer)
+                for d in pkt:
+                    if isinstance(d, self.packet_type):
+                        buffer[cursor] = d.value
+                        cursor += 1
+                        collected += 1
+                        if cursor % SAMPLING_FREQUENCY == 0:
+                            # flush every second so that readers can collect
+                            # the data in almost real time
+                            buffer.flush()
+                        cursor, buffer = self.check_buffer(cursor, buffer)
+                        if n_samples is not None and collected > n_samples:
+                            # early stopping
+                            raise StopIteration()
+
+        except (KeyboardInterrupt, StopIteration), e:
+            buffer.flush()
+            logging.info('Closing connection to %s', self.device)
+
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -60,14 +140,15 @@ def main():
     if len(sys.argv) > 1:
         device = sys.argv[1]
 
-    b = collect_buffer(device)
-    pl.subplot(211)
-    pl.title("Raw signal from the MindSet")
-    pl.plot(b)
-    pl.subplot(212)
-    pl.specgram(b)
-    pl.title("Spectrogram")
-    pl.show()
+    collector = DataCollector(device, os.path.expanduser('~/pythinkgear_data'))
+    collector.collect()
+    #pl.subplot(211)
+    #pl.title("Raw signal from the MindSet")
+    #pl.plot(data)
+    #pl.subplot(212)
+    #pl.specgram(data)
+    #pl.title("Spectrogram")
+    #pl.show()
 
 if __name__ == '__main__':
     main()
