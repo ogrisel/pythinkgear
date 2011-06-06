@@ -70,8 +70,6 @@ class DataCollector(object):
 
     def make_buffer(self, session_id):
         session_folder = os.path.join(self.data_folder, session_id)
-        if not os.path.exists(session_folder):
-            os.makedirs(session_folder)
 
         # build a non existing filename based on a timestamp and a integer
         # increment
@@ -106,12 +104,24 @@ class DataCollector(object):
             cursor = 0
         return cursor, buffer
 
+    def make_session(self):
+        """Make a new session folder and return its id"""
+        incr = 0
+        while True:
+            session_id = self.get_timestamp() + "_%3d" % incr
+            session_folder = os.path.join(self.data_folder, session_id)
+            if os.path.exists(session_folder):
+                incr += 1
+            else:
+                os.makedirs(session_folder)
+                return session_id
+
     def collect(self, n_samples=None):
         """Collect samples from the device using the protocol instance
 
         Instance are buffered in memory mapped arrays of fixed size.
         """
-        session_id = self.get_timestamp()
+        session_id = self.make_session()
         collected = 0
         logging.info("Opening connection to %s", self.device)
         cursor = 0
@@ -137,6 +147,25 @@ class DataCollector(object):
         except (KeyboardInterrupt, StopIteration), e:
             buffer.flush()
             logging.info('Closing connection to %s', self.device)
+
+
+    def list_sessions(self):
+        """Return the list of recorded session ids, sorted by date"""
+        sessions = os.listdir(self.data_folder)
+        sessions.sort()
+        return sessions
+
+
+    def get_session(self, session=-1):
+        """Return the aggregate data array of a session
+
+        If the session consists in many buffers, they are concatenated into a
+        single buffer loaded in memory.
+
+        If the data is a single file, it is memmaped as an array.
+        """
+        pass
+
 
 
 def main():

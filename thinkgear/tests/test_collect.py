@@ -2,6 +2,8 @@ import os
 import tempfile
 import shutil
 import numpy as np
+from nose.tools import with_setup
+from nose.tools import assert_equal
 
 from ..collect import DataCollector
 from ..thinkgear import ThinkGearRawWaveData
@@ -27,8 +29,17 @@ class RandomProtocol(object):
                    for _ in range(self.rng.randint(10))]
 
 
+def setup_data_folder():
+    global data_folder
+    data_folder = tempfile.mkdtemp(prefix='pythingear_')
+
+
+def teardown_data_folder():
+    shutil.rmtree(data_folder)
+
+
+@with_setup(setup_data_folder, teardown_data_folder)
 def test_data_collector():
-    data_folder = tempfile.mkdtemp()
     collector = DataCollector('/fake/device', data_folder,
                               protocol=RandomProtocol, packet_type=MockData)
     collector.collect(n_samples=(collector.chunk_size * 3 + 10))
@@ -48,4 +59,16 @@ def test_data_collector():
                             dtype=collector.dtype)
     assert np.all(last_buffer[11:] == 0.0)
 
-    shutil.rmtree(data_folder)
+
+@with_setup(setup_data_folder, teardown_data_folder)
+def test_session_management():
+    collector = DataCollector('/fake/device', data_folder,
+                              protocol=RandomProtocol, packet_type=MockData)
+    collector.collect(n_samples=(collector.chunk_size * 2))
+    assert_equal(len(collector.list_sessions()), 1)
+
+    collector.collect(n_samples=42)
+    assert_equal(len(collector.list_sessions()), 2)
+
+    collector.collect(n_samples=43)
+    assert_equal(len(collector.list_sessions()), 3)
