@@ -152,6 +152,8 @@ class DataCollector(object):
             for pkt in self.protocol(self.device).get_packets():
                 cursor, buffer = self.check_buffer(cursor, buffer, session_id)
                 for d in pkt:
+                    # TODO: monitor and log packet types that match error
+                    # messages coming from the headset
                     if isinstance(d, self.packet_type):
                         cursor, buffer = self.check_buffer(
                             cursor, buffer, session_id)
@@ -170,6 +172,8 @@ class DataCollector(object):
             if cursor > 0:
                 self.trim_buffer(buffer, cursor)
             logging.info('Closing connection to %s', self.device)
+
+        return session_id
 
     def list_sessions(self):
         """Return the list of recorded session ids, sorted by date"""
@@ -213,14 +217,15 @@ def main():
         device = sys.argv[1]
 
     collector = DataCollector(device, os.path.expanduser('~/pythinkgear_data'))
-    collector.collect()
-    #pl.subplot(211)
-    #pl.title("Raw signal from the MindSet")
-    #pl.plot(data)
-    #pl.subplot(212)
-    #pl.specgram(data)
-    #pl.title("Spectrogram")
-    #pl.show()
+    session_id = collector.collect(SAMPLING_FREQUENCY * 10)
+    data = collector.get_session(session_id)
+    pl.subplot(211)
+    pl.title("Raw signal from the MindSet")
+    pl.plot(data)
+    pl.subplot(212)
+    pl.specgram(data)
+    pl.title("Spectrogram")
+    pl.show()
 
 if __name__ == '__main__':
     main()
