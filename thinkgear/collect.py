@@ -24,7 +24,6 @@
 
 """Interface module to dump raw packet into numpy arrays for analysis"""
 
-import uuid
 import logging
 import sys
 import os
@@ -70,15 +69,18 @@ class DataCollector(object):
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     def make_buffer(self, session_id):
+        session_folder = os.path.join(self.data_folder, session_id)
+        if not os.path.exists(session_folder):
+            os.makedirs(session_folder)
 
         # build a non existing filename based on a timestamp and a integer
         # increment
         ts = self.get_timestamp()
         incr = 0
-        pattern = self.prefix + ts + '_%s_%03d.memmap'
+        pattern = self.prefix + ts + '_%03d.memmap'
         while True:
-            filename = pattern % (session_id, incr)
-            filepath = os.path.join(self.data_folder, filename)
+            filename = pattern % incr
+            filepath = os.path.join(session_folder, filename)
             if os.path.exists(filepath):
                 incr += 1
             else:
@@ -109,7 +111,7 @@ class DataCollector(object):
 
         Instance are buffered in memory mapped arrays of fixed size.
         """
-        session_id = uuid.uuid4().hex[:16]
+        session_id = self.get_timestamp()
         collected = 0
         logging.info("Opening connection to %s", self.device)
         cursor = 0

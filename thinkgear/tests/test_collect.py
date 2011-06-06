@@ -33,13 +33,18 @@ def test_data_collector():
                               protocol=RandomProtocol, packet_type=MockData)
     collector.collect(n_samples=(collector.chunk_size * 3 + 10))
 
+    # expect one session folder
+    session_folders = os.listdir(data_folder)
+    assert len(session_folders) == 1
+    session_folder = os.path.join(data_folder, session_folders[0])
+
     # 3 full buffers + one partially filled fourth memmapable buffer
-    data_files = os.listdir(data_folder)
+    data_files = os.listdir(session_folder)
     assert len(data_files) == 4
 
     # last buffer should be mostly filled with zeros
     data_files.sort()
-    last_buffer = np.memmap(os.path.join(data_folder, data_files[-1]),
+    last_buffer = np.memmap(os.path.join(session_folder, data_files[-1]),
                             dtype=collector.dtype)
     assert np.all(last_buffer[11:] == 0.0)
 
