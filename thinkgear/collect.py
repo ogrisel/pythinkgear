@@ -153,6 +153,8 @@ class DataCollector(object):
                 cursor, buffer = self.check_buffer(cursor, buffer, session_id)
                 for d in pkt:
                     if isinstance(d, self.packet_type):
+                        cursor, buffer = self.check_buffer(
+                            cursor, buffer, session_id)
                         buffer[cursor] = d.value
                         cursor += 1
                         collected += 1
@@ -160,15 +162,13 @@ class DataCollector(object):
                             # flush every second so that readers can collect
                             # the data in almost real time
                             buffer.flush()
-                        cursor, buffer = self.check_buffer(
-                            cursor, buffer, session_id)
-                        if n_samples is not None and collected > n_samples:
+                        if n_samples is not None and collected >= n_samples:
                             # early stopping
                             raise StopIteration()
 
         except (KeyboardInterrupt, StopIteration), e:
             if cursor > 0:
-                self.trim_buffer(buffer, cursor - 1)
+                self.trim_buffer(buffer, cursor)
             logging.info('Closing connection to %s', self.device)
 
     def list_sessions(self):
