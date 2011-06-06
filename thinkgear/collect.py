@@ -92,6 +92,28 @@ class DataCollector(object):
         buffer[:] = 0.0
         return buffer
 
+    @staticmethod
+    def trim_buffer(buffer, size):
+        """Trim the buffer to only keep the 'size' first elements"""
+        if size >= buffer.shape[0] or size == 0:
+            # nothing to do
+            return buffer
+
+        filename = buffer.filename
+        logging.info("Trim %s from %d down to %d",
+                     filename, buffer.shape[0], size)
+
+        # load the interesting buffer data in memory
+        data = buffer[:size].copy()
+        buffer.close()
+        os.unlink(filename)
+
+        # copy the data into a smaller memmaped array at the same location
+        new_buffer = np.memmap(filename, dtype=buffer.dtype, mode='w+',
+                               shape=(size,))
+        new_buffer[:] = data
+        return new_buffer
+
     def check_buffer(self, cursor, buffer, session_id):
         """Check that the cursor is not overflowing the buffer
 
@@ -108,7 +130,7 @@ class DataCollector(object):
         """Make a new session folder and return its id"""
         incr = 0
         while True:
-            session_id = self.get_timestamp() + "_%3d" % incr
+            session_id = self.get_timestamp() + "_%03d" % incr
             session_folder = os.path.join(self.data_folder, session_id)
             if os.path.exists(session_folder):
                 incr += 1
@@ -145,16 +167,15 @@ class DataCollector(object):
                             raise StopIteration()
 
         except (KeyboardInterrupt, StopIteration), e:
-            buffer.flush()
+            if cursor > 0:
+                self.trim_buffer(buffer, cursor - 1)
             logging.info('Closing connection to %s', self.device)
-
 
     def list_sessions(self):
         """Return the list of recorded session ids, sorted by date"""
         sessions = os.listdir(self.data_folder)
         sessions.sort()
         return sessions
-
 
     def get_session(self, session=-1):
         """Return the aggregate data array of a session
@@ -164,8 +185,25 @@ class DataCollector(object):
 
         If the data is a single file, it is memmaped as an array.
         """
-        pass
+        sessions = self.list_sessions()
+        if isinstance(session, int):
+            session_id = sessions[session]
+        elif session in sessions:
+            session_id = session
+        else:
+            raise ValueError("No such session %r" % session)
 
+        session_folder = os.path.join(self.data_folder, session_id)
+        data_files = os.listdir(session_folder)
+        if len(data_files) == 0:
+            return np.array([])
+        elif len(data_files) == 1:
+            return np.memmap(os.path.join(session_folder, data_files[0]),
+                             dtype=self.dtype)
+        else:
+            return np.concatenate([np.memmap(os.path.join(session_folder, f),
+                                             dtype=self.dtype)
+                                   for f in data_files])
 
 
 def main():

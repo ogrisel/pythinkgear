@@ -72,3 +72,11 @@ def test_session_management():
 
     collector.collect(n_samples=43)
     assert_equal(len(collector.list_sessions()), 3)
+
+    # fetches the last session by default
+    assert_equal(collector.get_session().shape[0], 43)
+
+    # lookup by index an in memory aggregate of the first, multi-buffer
+    # session
+    assert_equal(collector.get_session(0).shape[0],
+                 collector.chunk_size * 2)
