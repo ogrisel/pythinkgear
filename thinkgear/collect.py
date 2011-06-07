@@ -39,7 +39,6 @@ from .thinkgear import ThinkGearRawWaveData
 # The Mindset samples at 512Hz
 SAMPLING_FREQUENCY = 512
 
-
 # One file per 1 minute of collected data
 BUFFER_SIZE = SAMPLING_FREQUENCY * 60
 
@@ -53,7 +52,8 @@ class DataCollector(object):
 
     def __init__(self, device, data_folder, prefix='pythinkgear_',
                  chunk_size=BUFFER_SIZE, dtype=np.double,
-                 protocol=ThinkGearProtocol, packet_type=ThinkGearRawWaveData):
+                 protocol=ThinkGearProtocol, packet_type=ThinkGearRawWaveData,
+                 monitor=None):
         if not os.path.exists(data_folder):
             os.makedirs(data_folder)
         self.data_folder = data_folder
@@ -63,6 +63,9 @@ class DataCollector(object):
         self.chunk_size = chunk_size
         self.protocol = protocol
         self.packet_type = packet_type
+        self.monitor = monitor
+        if monitor is not None:
+            monitor.init(self)
 
     def get_timestamp(self):
         """Up to the second, filename same timestamp"""
@@ -160,10 +163,13 @@ class DataCollector(object):
                         buffer[cursor] = d.value
                         cursor += 1
                         collected += 1
-                        if cursor % SAMPLING_FREQUENCY == 0:
+                        if (self.monitor is not None
+                            and cursor % self.monitor.period == 0):
                             # flush every second so that readers can collect
                             # the data in almost real time
                             buffer.flush()
+                            self.monitor.update(
+                                buffer[cursor - self.monitor.period:cursor])
                         if n_samples is not None and collected >= n_samples:
                             # early stopping
                             raise StopIteration()
@@ -211,14 +217,19 @@ class DataCollector(object):
 
 
 def main():
+    from .monitor import MatplotlibMonitor
     logging.basicConfig(level=logging.INFO)
     device = '/dev/rfcomm9'
     if len(sys.argv) > 1:
         device = sys.argv[1]
 
-    collector = DataCollector(device, os.path.expanduser('~/pythinkgear_data'))
-    session_id = collector.collect(SAMPLING_FREQUENCY * 10)
+    collector = DataCollector(device, os.path.expanduser('~/pythinkgear_data'),
+                              monitor=MatplotlibMonitor(period=128))
+    session_id = collector.collect(SAMPLING_FREQUENCY * 60 * 10)
     data = collector.get_session(session_id)
+    print "collected %d samples" % data.shape[0]
+    print "mean: %0.3f" % data.mean()
+    print "standard deviation: %0.3f" % data.std()
     pl.subplot(211)
     pl.title("Raw signal from the MindSet")
     pl.plot(data)
