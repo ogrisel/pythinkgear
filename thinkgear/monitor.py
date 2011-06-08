@@ -1,12 +1,14 @@
-import gtk, gobject
+import time
+import threading
 
+import gtk
+import gobject
 import matplotlib
 matplotlib.use('GTKAgg')
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-import threading
 
 
 class MatplotlibMonitor(object):
@@ -66,4 +68,6 @@ class MatplotlibMonitor(object):
 
         # just redraw the axes rectangle
         self.canvas.blit(self.ax.bbox)
+        time.sleep(0.100)
+
         return True

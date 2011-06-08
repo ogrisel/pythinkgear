@@ -207,7 +207,7 @@ class ThinkGearData(object):
 
 
 class ThinkGearUnknownData(ThinkGearData):
-    '''???'''
+    '''Unknown data'''
     _strfmt = ('Unknown: code=%(code)02X '
                'extended_code_level=%(extended_code_level)s %(value)r')
 

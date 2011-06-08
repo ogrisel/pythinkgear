@@ -34,6 +34,7 @@ import pylab as pl
 
 from .thinkgear import ThinkGearProtocol
 from .thinkgear import ThinkGearRawWaveData
+from .thinkgear import ThinkGearPoorSignalData
 
 
 # The Mindset samples at 512Hz
@@ -71,8 +72,9 @@ class DataCollector(object):
         """Up to the second, filename same timestamp"""
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    def make_buffer(self, session_id):
+    def make_buffer(self, session_id, dtype=None):
         session_folder = os.path.join(self.data_folder, session_id)
+        dtype = dtype if dtype is not None else self.dtype
 
         # build a non existing filename based on a timestamp and a integer
         # increment
@@ -88,7 +90,7 @@ class DataCollector(object):
                 break
 
         logging.info("Creating new buffer: %s", filepath)
-        buffer = np.memmap(filepath, dtype=self.dtype, mode='w+',
+        buffer = np.memmap(filepath, dtype=dtype, mode='w+',
                            shape=(self.chunk_size,))
         # set all the buffer values to zero to be able to detect partially
         # filled buffers
@@ -155,9 +157,12 @@ class DataCollector(object):
             for pkt in self.protocol(self.device).get_packets():
                 cursor, buffer = self.check_buffer(cursor, buffer, session_id)
                 for d in pkt:
-                    # TODO: monitor and log packet types that match error
-                    # messages coming from the headset
-                    if isinstance(d, self.packet_type):
+                    # TODO: store the poor signal data packets in a boolean mast
+                    # array
+                    if isinstance(d, ThinkGearPoorSignalData):
+                        if d.value:
+                            logging.warn("Poor signal: please adjust headset")
+                    elif isinstance(d, self.packet_type):
                         cursor, buffer = self.check_buffer(
                             cursor, buffer, session_id)
                         buffer[cursor] = d.value
