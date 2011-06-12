@@ -2,6 +2,7 @@ import os
 import tempfile
 import shutil
 import numpy as np
+from numpy.testing import assert_array_equal
 from nose.tools import with_setup
 from nose.tools import assert_equal
 
@@ -47,15 +48,15 @@ def test_data_collector():
     # expect one session folder
     session_folders = os.listdir(data_folder)
     assert len(session_folders) == 1
-    session_folder = os.path.join(data_folder, session_folders[0])
+    signal_folder = os.path.join(data_folder, session_folders[0], 'data')
 
     # 3 full buffers + one partially filled fourth memmapable buffer
-    data_files = os.listdir(session_folder)
+    data_files = os.listdir(signal_folder)
     assert len(data_files) == 4
 
     # last buffer should be mostly filled with zeros
     data_files.sort()
-    last_buffer = np.memmap(os.path.join(session_folder, data_files[-1]),
+    last_buffer = np.memmap(os.path.join(signal_folder, data_files[-1]),
                             dtype=collector.dtype)
     assert np.all(last_buffer[11:] == 0.0)
 
@@ -78,5 +79,14 @@ def test_session_management():
 
     # lookup by index an in memory aggregate of the first, multi-buffer
     # session
-    assert_equal(collector.get_session(0).shape[0],
-                 collector.chunk_size * 2)
+    data_session_0 = collector.get_session(0)
+    assert_equal(data_session_0.shape[0], collector.chunk_size * 2)
+
+    # the fake packet generator does not send any bad poor packet signal hence
+    # the quality is always good
+    expected = np.array([True] * 43, dtype=np.bool)
+    assert_array_equal(collector.get_session(signal='quality'), expected)
+
+    quality_session_0 = collector.get_session(0, signal='quality')
+    assert_equal(quality_session_0.shape, data_session_0.shape)
+    assert np.all(quality_session_0)
