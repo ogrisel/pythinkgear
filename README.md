@@ -7,7 +7,7 @@ devices such as the Neurosky Mindset.
 ## Setup under Linux
 
 Here are the instructions to make the Mindset available as a serial
-device suitable for direct access by `pythinkgear` under Ubuntu 11.04:
+device suitable for direct access by `pythinkgear` under Ubuntu / Debian:
 
 - As root create a file named `/etc/bluetooth/rfcomm.conf` to define a serial
   binding `/dev/rfcomm0` for the bluetooth device. Configure it as follows
@@ -50,7 +50,7 @@ device suitable for direct access by `pythinkgear` under Ubuntu 11.04:
         sudo rfcomm bind /dev/rfcomm0
 
 - Put the headset on your head and ensure the metal contacts can all touch your
-  skin (hear and forehead), then wait a couple of second with the headset in
+  skin (ear and forehead), then wait a couple of second with the headset in
   place.
 
 - Test the pythinkgear main script, you should get DEBUG level log info on the
