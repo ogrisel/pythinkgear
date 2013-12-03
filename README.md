@@ -9,6 +9,19 @@ devices such as the Neurosky Mindset.
 Here are the instructions to make the Mindset available as a serial
 device suitable for direct access by `pythinkgear` under Ubuntu / Debian:
 
+- Install the `serial` package:
+
+      pip install serial
+      
+- Install pythinkgear itself (e.g. from the top folder of this repo):
+
+      python setup.py install
+      
+  or:
+
+      pip install -e .  # to install in developer mode
+
+
 - As root create a file named `/etc/bluetooth/rfcomm.conf` to define a serial
   binding `/dev/rfcomm0` for the bluetooth device. Configure it as follows
   (replace the device id to match your own):
