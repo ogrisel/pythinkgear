@@ -11,15 +11,15 @@ device suitable for direct access by `pythinkgear` under Ubuntu / Debian:
 
 - Install the `serial` package:
 
-    pip install serial
+      pip install serial
       
 - Install pythinkgear itself (e.g. from the top folder of this repo):
 
-    python setup.py install
+      python setup.py install
       
   or:
 
-    pip install -e .  # to install in developer mode
+      pip install -e .  # to install in developer mode
 
 
 - As root create a file named `/etc/bluetooth/rfcomm.conf` to define a serial
