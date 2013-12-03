@@ -29,8 +29,13 @@ import sys
 import os
 from datetime import datetime
 
+import gtk
+import gobject
+import matplotlib
+matplotlib.use('GTKAgg')
+import matplotlib.pyplot as plt
+
 import numpy as np
-import pylab as pl
 
 from .thinkgear import ThinkGearProtocol
 from .thinkgear import ThinkGearRawWaveData
@@ -264,7 +269,7 @@ class DataCollector(object):
 def main():
     from .monitor import MatplotlibMonitor
     logging.basicConfig(level=logging.INFO)
-    device = '/dev/rfcomm9'
+    device = '/dev/rfcomm0'
     if len(sys.argv) > 1:
         device = sys.argv[1]
 
@@ -272,16 +277,16 @@ def main():
                               monitor=MatplotlibMonitor(period=128))
     session_id = collector.collect(SAMPLING_FREQUENCY * 60 * 10)
     data = collector.get_session(session_id)
-    print "collected %d samples" % data.shape[0]
-    print "mean: %0.3f" % data.mean()
-    print "standard deviation: %0.3f" % data.std()
-    pl.subplot(211)
-    pl.title("Raw signal from the MindSet")
-    pl.plot(data)
-    pl.subplot(212)
-    pl.specgram(data)
-    pl.title("Spectrogram")
-    pl.show()
+    print("collected %d samples" % data.shape[0])
+    print("mean: %0.3f" % data.mean())
+    print("standard deviation: %0.3f" % data.std())
+    plt.subplot(211)
+    plt.title("Raw signal from the MindSet")
+    plt.plot(data)
+    plt.subplot(212)
+    plt.specgram(data)
+    plt.title("Spectrogram")
+    plt.show()
 
 if __name__ == '__main__':
     main()

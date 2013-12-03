@@ -1,10 +1,6 @@
 import time
 import threading
-
-import gtk
 import gobject
-import matplotlib
-matplotlib.use('GTKAgg')
 
 import numpy as np
 import matplotlib.pyplot as plt
