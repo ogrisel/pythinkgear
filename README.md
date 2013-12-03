@@ -9,9 +9,9 @@ devices such as the Neurosky Mindset.
 Here are the instructions to make the Mindset available as a serial
 device suitable for direct access by `pythinkgear` under Ubuntu / Debian:
 
-- Install the `serial` package:
+- Install the `pyserial` package:
 
-      pip install serial
+      pip install pyserial
 
 
 - Install pythinkgear itself (e.g. from the top folder of this repo):
