@@ -265,7 +265,7 @@ class ThinkGearEEGPowerData(ThinkGearData):
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
-    device = '/dev/rfcomm9'
+    device = '/dev/rfcomm0'
     if len(sys.argv) > 1:
         device = sys.argv[1]
 
