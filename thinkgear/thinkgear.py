@@ -276,5 +276,8 @@ def main():
     for pkt in ThinkGearProtocol(device).get_packets():
         packet_log.append(pkt)
 
+    return packet_log
+
+
 if __name__ == '__main__':
     main()
