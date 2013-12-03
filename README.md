@@ -12,11 +12,13 @@ device suitable for direct access by `pythinkgear` under Ubuntu / Debian:
 - Install the `serial` package:
 
       pip install serial
-      
+
+
 - Install pythinkgear itself (e.g. from the top folder of this repo):
 
       python setup.py install
-      
+
+
   or:
 
       pip install -e .  # to install in developer mode
